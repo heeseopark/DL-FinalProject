@@ -24,4 +24,4 @@ def convert_ipynb_to_py(input_file):
     print(f'convert of {input_file} is done')
 
 # Example usage
-convert_ipynb_to_py('newdataset.ipynb')
+convert_ipynb_to_py('test.ipynb')
