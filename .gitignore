@@ -1,1 +1,2 @@
-.model/
+# Ignore model directory
+model/
