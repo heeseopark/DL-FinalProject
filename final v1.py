@@ -52,8 +52,8 @@ lstm_hidden_size = 64
 num_lstm_layers = 2
 
 # hyperparameters for training, testing
-learning_rate = 0.001
-num_epochs = 5
+learning_rate = 0.01
+num_epochs = 2
 
 #----------------------------------------------------------------------
 class PriceDataset(Dataset):
@@ -180,16 +180,17 @@ def train(model, train_loader, optimizer, criterion):
         
         # Data dimension change and move to device
         input_data = input_data.unsqueeze(-1).to(device)  # [32, 10] -> [32, 10, 1]
-        target_data = change_to_binary(target_data).to(device)  # [32, 5]
+        target_data = target_data.to(device)  # [32, 5]
 
         # Model prediction
-        output = change_to_binary(model(input_data))
+        output = model(input_data)
 
         # Loss calculation and backpropagation
         loss = criterion(output, target_data)
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
+        print(loss.item())
 
         if batch_indices[0] % 10000 == 0:
             # print(f"Inside training loop. Batch indices: {batch_indices[0]}, loss value: {total_loss/batch_indices[0]}")
@@ -205,19 +206,20 @@ def test(model, test_loader, criterion):
         for batch_indices, (input_data, target_data) in test_loader:
             # Data dimension change and move to device
             input_data = input_data.unsqueeze(-1).to(device)  # [32, 10] -> [32, 10, 1]
-            target_data = change_to_binary(target_data).to(device)  # [32, 5]
+            target_data = target_data.to(device)  # [32, 5]
 
             # Model prediction
-            output = change_to_binary(model(input_data))
+            output = model(input_data)
 
             # Loss calculation
             loss = criterion(output, target_data)
             total_loss += loss.item()
+            print(loss.item())
 
 
-        if batch_indices[0] % 10000 == 0:
-            # print(f"Inside testing loop. Batch indices: {batch_indices[0]}, loss value: {total_loss/batch_indices[0]}")
-            print(f"Inside testing loop. Batch indices: {batch_indices[0]}, loss value: {total_loss * len(test_loader)/batch_indices[0]}")
+            if batch_indices[0] % 10000 == 0:
+                # print(f"Inside testing loop. Batch indices: {batch_indices[0]}, loss value: {total_loss/batch_indices[0]}")
+                print(f"Inside testing loop. Batch indices: {batch_indices[0]}, loss value: {total_loss * len(test_loader)/batch_indices[0]}")
 
     return total_loss
     # return total_loss / len(test_loader)
@@ -225,8 +227,8 @@ def test(model, test_loader, criterion):
 
 #----------------------------------------------------------------------
 # Example usage
-train_dataset = PriceDataset('BTCUSDT', '1m', '2021-03-01', '2021-04-01', input_window_size=input_size, target_window_size=target_size)
-test_dataset = PriceDataset('BTCUSDT', '1m', '2022-01-01', '2022-01-31', input_window_size=input_size, target_window_size=target_size)
+train_dataset = PriceDataset('BTCUSDT', '1m', '2021-03-01', '2022-12-31', input_window_size=input_size, target_window_size=target_size)
+test_dataset = PriceDataset('BTCUSDT', '1m', '2023-01-01', '2023-05-15', input_window_size=input_size, target_window_size=target_size)
 # print(train_dataset.__len__())
 # print(test_dataset.__len__())
 
@@ -305,8 +307,11 @@ def change_to_binary(tensor):
 
 
 #----------------------------------------------------------------------
+def create_model_filename(input_size, target_size, d_model, n_heads, num_encoder_layers, lstm_hidden_size, num_lstm_layers):
+    return f"model/model_input{input_size}_target{target_size}_dmodel{d_model}_nheads{n_heads}_encoderlayers{num_encoder_layers}_lstmhidden{lstm_hidden_size}_lstmlayers{num_lstm_layers}.pth"
+
 # 모델 파일 경로
-model_file_path = "best_model.pth"
+model_file_path = f"model/{create_model_filename(input_size, target_size, d_model, n_heads, num_encoder_layers, lstm_hidden_size, num_lstm_layers)}"
 
 # 모델 파일이 존재하는지 확인하고, 존재할 경우 모델 로드
 if os.path.isfile(model_file_path):
@@ -330,8 +335,9 @@ for epoch in range(num_epochs):
     # Update best test loss and save model
     if test_loss < best_test_loss:
         best_test_loss = test_loss
-        torch.save(model.state_dict(), model_file_path)
-        print(f"Model saved at Epoch {epoch + 1}")
+        model_filename = create_model_filename(input_size, target_size, d_model, n_heads, num_encoder_layers, lstm_hidden_size, num_lstm_layers)
+        torch.save(model.state_dict(), model_filename)
+        print(f"Model saved as '{model_filename}' at Epoch {epoch + 1}")
 
     # Print epoch results
     print(f"Epoch {epoch + 1}/{num_epochs}, Train Loss: {train_loss}, Test Loss: {test_loss}")
