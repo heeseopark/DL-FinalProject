@@ -1,12 +1,5 @@
 #----------------------------------------------------------------------
 import torch
-
-torch.__version__
-
-
-#----------------------------------------------------------------------
-
-import torch
 import torch.nn as nn
 import math
 import pandas as pd
@@ -171,19 +164,6 @@ class TimeSeriesTransformerModel(nn.Module):
         return output
 
 #----------------------------------------------------------------------
-def change_to_binary(tensor):
-    """
-    Convert a tensor's positive values to 1 and negative values to 0 for binary classification.
-
-    Args:
-    tensor (torch.Tensor): A tensor containing numeric values.
-
-    Returns:
-    torch.Tensor: A tensor where all positive values are replaced with 1 and negative values with 0.
-    """
-    binary_tensor = torch.where(tensor > 0, 1., 0.)
-    return binary_tensor
-
 def train(model, train_loader, optimizer, criterion):
     model.train()
     total_loss = 0
@@ -199,7 +179,7 @@ def train(model, train_loader, optimizer, criterion):
         output = model(input_data)
 
         # Loss calculation and backpropagation
-        loss = criterion(output, change_to_binary(target_data))
+        loss = criterion(output, target_data)
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
@@ -224,7 +204,7 @@ def test(model, test_loader, criterion):
             output = model(input_data)
 
             # Loss calculation
-            loss = criterion(output, change_to_binary(target_data))
+            loss = criterion(output, target_data)
             total_loss += loss.item()
 
 
@@ -260,98 +240,11 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 
 #----------------------------------------------------------------------
-# # Fetch a single batch from the DataLoader
-# for input_data, target_data in train_loader:
-#     example_input_batch = input_data.to(device)
-#     example_target_batch = change_to_binary(target_data).to(device)  # Using the binary_classify function
-#     break  # Only the first batch is needed
-
-# # Pass the input data through the model
-# model.eval()  # Set the model to evaluation mode
-# with torch.no_grad():
-#     predicted_output = model(example_input_batch.unsqueeze(-1))
-
-# # Print shapes and content of the batch
-# print("Input batch shape:", example_input_batch.shape)
-# print("Target batch shape:", example_target_batch.shape)
-# print("Example input batch:\n", example_input_batch)
-# print("Example target batch:\n", example_target_batch)
-
-# # Calculate and print the loss
-# loss_fn = torch.nn.BCEWithLogitsLoss()
-# loss = loss_fn(predicted_output, example_target_batch.float())  # Ensure target data is float
-# print("Loss:", loss.item())
-
-
-#----------------------------------------------------------------------
-# # Fetch a single batch from the DataLoader
-# for input_data, target_data in train_loader:
-#     example_input_batch, example_target_batch, example_output_batch = input_data, change_to_binary(target_data), model(input_data.unsqueeze(-1))
-#     break  # We only need the first batch for this example
-
-# # Show the shapes and sample content of the example batch
-# example_input_batch.shape, example_target_batch.shape, example_output_batch.shape, example_input_batch, example_target_batch, example_output_batch
-
-# # Fetch a single batch from the DataLoader
-# for input_data, target_data in train_loader:
-#     example_input_batch, example_target_batch = input_data, change_to_binary(target_data)
-#     break  # We only need the first batch for this example
-
-# # Print the shapes and sample content of the example batch
-# print("Input batch shape:", example_input_batch.shape)
-# print("Target batch shape:", example_target_batch.shape)
-# print("Output batch shape:", example_output_batch.shape)
-# print("Example input batch:\n", example_input_batch)
-# print("Example target batch:\n", example_target_batch)
-
-
-
-#----------------------------------------------------------------------
-# def test_first_batches(model, data_loader, criterion, device, num_batches=20):
-#     model.eval()  # Set the model to evaluation mode
-#     with torch.no_grad():
-#         for i, (batch_indices, (input_data, target_data)) in enumerate(data_loader):
-#             if i >= num_batches:
-#                 break  # Only test the first 20 batches
-
-#             # Data dimension change and move to device
-#             input_data = input_data.unsqueeze(-1).to(device)  # Reshape for the model if necessary
-#             target_data = target_data.to(device)
-
-#             # Model prediction
-#             output = model(input_data)
-
-#             # Calculate loss
-#             loss = criterion(output, change_to_binary(target_data))
-
-#             # Print batch information
-#             print(f"Batch {i + 1}/{num_batches}")
-#             print(f"Input Data: {input_data}")
-#             print(f"Target Data: {change_to_binary(target_data)}")
-#             print(f"Output Data: {output}")
-#             print(f"Loss: {loss.item()}\n")
-
-# # Usage of the testing function
-# train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)  # Assuming train_dataset is defined
-# test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)   # Assuming test_dataset is defined
-# criterion = nn.BCEWithLogitsLoss()  # Assuming you are using BCEWithLogitsLoss
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-# # Test the first 20 batches of the training data
-# print("Testing on Training Data:")
-# test_first_batches(model, train_loader, criterion, device)
-
-# # Test the first 20 batches of the test data
-# print("Testing on Test Data:")
-# test_first_batches(model, test_loader, criterion, device)
-
-
-#----------------------------------------------------------------------
 def create_model_filename(input_size, target_size, d_model, n_heads, num_encoder_layers, lstm_hidden_size, num_lstm_layers):
     return f"model_input{input_size}_target{target_size}_dmodel{d_model}_nheads{n_heads}_encoderlayers{num_encoder_layers}_lstmhidden{lstm_hidden_size}_lstmlayers{num_lstm_layers}.pth"
 
 # 모델 파일 경로
-model_file_path = f"model/{create_model_filename(input_size, target_size, d_model, n_heads, num_encoder_layers, lstm_hidden_size, num_lstm_layers)}"
+model_file_path = f"model/final v2/{create_model_filename(input_size, target_size, d_model, n_heads, num_encoder_layers, lstm_hidden_size, num_lstm_layers)}"
 
 # 모델 파일이 존재하는지 확인하고, 존재할 경우 모델 로드
 if os.path.isfile(model_file_path):
@@ -366,7 +259,7 @@ test_losses = []
 best_test_loss = float('inf')
 
 # Define the directory for saving figures
-figures_directory = "figures"
+figures_directory = "figures/final v2"
 model_name = create_model_filename(input_size, target_size, d_model, n_heads, num_encoder_layers, lstm_hidden_size, num_lstm_layers).replace('.pth', '')  # Use the generated model name without the file extension
 model_figures_directory = os.path.join(figures_directory, model_name)
 
